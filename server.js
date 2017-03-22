@@ -45,13 +45,32 @@ io.sockets.on('connection',
                 id: socket.id,
                 team: "none",
                 role: "none",
+                info: "none",
                 poisoned: 0
             });
             }
 		});
         socket.on('start', function() {
-            if(len(playerList) >= 8 && !started){
+            if(playerList.length >= 2 && !started){
 			     startGame();
+            }
+		});
+    
+        socket.on('poison', function(data) {
+            console.log(data + " has been poisoned");
+            for(var i=0; i<playerList.length; i++){
+                if(data == playerList[i].name){
+                    playerList[i].poisoned = 1;
+                }
+            }
+		});
+    
+        socket.on('antidote', function(data) {
+            console.log(data + " has been given antidote");
+            for(var i=0; i<playerList.length; i++){
+                if(data == playerList[i].name){
+                    playerList[i].poisoned = 0;
+                }
             }
 		});
 
@@ -67,61 +86,72 @@ function generateTeams() {
 	var doctors, spies, innos, vips = 0;
 	var blue = [];
 	var red = [];
-	var tempList = playerList;
-	var x = len(playerList);
+	var tempList = [];
+    var x = playerList.length;
+    for(var i=0; i<x; i++) {
+        tempList.push(i);
+    }
+    console.log(tempList);
 	tempList.sort(function(a, b){return 0.5 - Math.random()});
-	for(var i=0; i<x/2, i++) {
-		var player = tempList.pop;
-		blue.push(playerList.indexOf(player));
-		playerList[playerList.indexOf(player)].team = 1;
+	for(var i=0; i<x/2; i++) {
+		var player = tempList.pop();
+        console.log(player);
+		blue.push(player);
+		playerList[player].team = "blue";
 
 	}
-	while(len(tempList)>0) {
-		var player = tempList.pop;
-		red.push(playerList.indexOf(player));
-		playerList[playerList.indexOf(player)].team = 2;
+	while(tempList.length>0) {
+		var player = tempList.pop();
+		red.push(player);
+		playerList[player].team = "red";
 	}
 
-	doctors = 1+Math.floor(len(blue)/8);
-	spies = 1+Math.floor(len(blue)/8);
-	//vips = 1+Math.floor(len(blue)/8);
-	innos = len(blue)-doctors-spies-vips;
-	if(len(blue) > len(red)) {
+	doctors = 1+Math.floor(blue.length/8);
+	spies = 1+Math.floor(blue.length/8);
+	//vips = 1+Math.floor(blue.length/8);
+	innos = blue.length-doctors-spies-vips;
+	if(blue.length > red.length) {
 		innos++;
 		doctors--;
 	}
 	blue.sort(function(a, b){return 0.5 - Math.random()});
-	for(x in blue) {
+	for(var i = 0; i<blue.length; i++) {
 		if(innos > 0){
-			playerList[x].role = "inno";
+			playerList[blue[i]].role = "inno";
+            playerList[blue[i]].info = "You are a blue team member. Destroy the red team by any means necessary. Tap this message to make it vanish."
 			innos--;
 		}
 		else if(spies > 0) {
-			playerList[x].role = "spy";
+			playerList[blue[i]].role = "spy";
+            playerList[blue[i]].info = "You are a blue spy. Destroy the red team by any means necessary. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
 			spies--;
 		}
 		else if(doctors > 0) {
-			playerList[x].role = "doctor";
+			playerList[blue[i]].role = "doctor";
+            playerList[blue[i]].info = "You are a blue doctor. Destroy the red team by any means necessary. Try and save one of your teammates with your antidote. Tap this message to make it vanish."
 			doctors--;
 		}
 	}
 
-	doctors = 1+Math.floor(len(red)/8);
-	spies = 1+Math.floor(len(red)/8);
-	//vips = 1+Math.floor(len(red)/8);
-	innos = len(red)-doctors-spies-vips;
+	doctors = 1+Math.floor(red.length/8);
+	spies = 1+Math.floor(red.length/8);
+	//vips = 1+Math.floor(red.length/8);
+	innos = red.length-doctors-spies-vips;
 	red.sort(function(a, b){return 0.5 - Math.random()});
-	for(x in red) {
+	for(var i = 0; i<red.length; i++) {
 		if(innos > 0){
-			playerList[x].role = "inno";
+			playerList[red[i]].role = "inno";
+            playerList[red[i]].info = "You are a red team member. Destroy the red team by any means necessary. Tap this message to make it vanish."
 			innos--;
 		}
 		else if(spies > 0) {
-			playerList[x].role = "spy";
+			playerList[red[i]].role = "spy";
+            playerList[red[i]].info = "You are a red spy. Destroy the red team by any means necessary. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
 			spies--;
 		}
 		else if(doctors > 0) {
-			playerList[x].role = "doctor";
+			playerList[red[i]].role = "doctor";
+            playerList[red[i]].info = "You are a red doctor. Destroy the red team by any means necessary. Try and save one of your teammates with your antidote. Tap this message to make it vanish."
 			doctors--;
 		}
 	}
@@ -130,9 +160,9 @@ function generateTeams() {
 function startGame() {
 	generateTeams();
 
-	for(x in playerList){
-		io.broadcast.to(x.id).emit('start', x);
-		io.broadcast.to(x.id).emit('players', playerList);
+	for(var i = 0; i<playerList.length; i++){
+		io.in(playerList[i].id).emit('start', playerList[i]);
+		io.in(playerList[i].id).emit('players', playerList);
 	}
     started = true;
 	setTimeout(endGame, 480000);

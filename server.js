@@ -51,7 +51,7 @@ io.sockets.on('connection',
             }
 		});
         socket.on('start', function() {
-            if(playerList.length >= 2 && !started){
+            if(playerList.length >= 6 && !started){
 			     startGame();
             }
 		});
@@ -166,7 +166,7 @@ function startGame() {
 	}
     started = true;
     setTimeout(warning, 420000);
-	setTimeout(endGame, 30000);
+	setTimeout(endGame, 480000);
 }
 
 function warning() {

@@ -132,8 +132,10 @@ function gameOver(data) {
     else{
         text("You Are Alive", windowWidth/2, 180);
     }
-    text("There are "+blue+" People Alive On Blue Team", windowWidth/2, 240);
-    text("There are "+red+" People Alive On Red Team", windowWidth/2, 300);
+    text("There are "+blue+" People", windowWidth/2, 240);
+    text("Alive On Blue Team", windowWidth/2, 300);
+    text("There are "+red+" People", windowWidth/2, 400);
+    text("Alive On Red Team", windowWidth/2, 460);
 }
 
 function warning() {

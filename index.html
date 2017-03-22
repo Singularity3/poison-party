@@ -38,6 +38,9 @@
      socket.on('players', function(data){
       getPlayers(data);
      });
+        socket.on('oneMin', function(data) {
+            warning();
+        });
 
      socket.on('gameOver', function(data){
       gameOver(data);

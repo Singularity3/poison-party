@@ -4,13 +4,14 @@ var lastY;
 var players = [];
 var nameGrid = [];
 
+
 function setup() {
 	createCanvas(windowWidth, windowHeight);
 }
 
 function draw() {
-background('rgba(255,255,255, 0.25)');
 	if(!started) {
+        background('rgba(255,255,255, 0.25)');
 		
 		fill(0);
         noStroke();
@@ -26,6 +27,7 @@ background('rgba(255,255,255, 0.25)');
         }
 	}
     else if(!done) {
+        background('rgba(255,255,255, 0.25)');
         if(nameDisp == 0){
         if((team == "red" && !spySwap) || (team == "blue" && spySwap)){
             fill(255, 200, 200);
@@ -93,6 +95,50 @@ function poison(target) {
 
 function gameOver(data) {
 	done = true;
+    background(0);
+    fill(255);
+    var winner;
+    var dead;
+    var red = 0;
+    var blue = 0;
+    
+    for(var i = 0; i<data.length; i++) {
+        if(name == data[i].name){
+            dead = data[i].poisoned;
+        }
+        if("red" == data[i].team && data[i].poisoned == 0){
+            red++;
+        }
+        if("blue" == data[i].team && data[i].poisoned == 0){
+            blue++;
+        }
+    }
+    if(red>blue){
+        winner = "Red Team Wins";
+    }
+    else if(red<blue){
+        winner = "Blue Team Wins";
+    }
+    else{
+        winner = "Tie Game";
+    }
+    
+    textSize(30);
+    text("Game Over", windowWidth/2, 60);
+    text(winner, windowWidth/2, 120);
+    if(dead == 1){
+        text("You Are Dead", windowWidth/2, 180);
+    }
+    else{
+        text("You Are Alive", windowWidth/2, 180);
+    }
+    text("There are "+blue+" People Alive On Blue Team", windowWidth/2, 240);
+    text("There are "+red+" People Alive On Red Team", windowWidth/2, 300);
+}
+
+function warning() {
+    infoDisp = true;
+    info = "One Minute Remaining";
 }
 
 function popNames() {

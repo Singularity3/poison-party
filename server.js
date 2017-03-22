@@ -39,7 +39,7 @@ io.sockets.on('connection',
 		///MY SOCKET EVENTS HERE
 
         socket.on('name', function(data) {
-            if(!started){
+            if(!started&&data != null){
 			playerList.push({
                 name: data,
                 id: socket.id,
@@ -165,7 +165,12 @@ function startGame() {
 		io.in(playerList[i].id).emit('players', playerList);
 	}
     started = true;
-	setTimeout(endGame, 480000);
+    setTimeout(warning, 420000);
+	setTimeout(endGame, 30000);
+}
+
+function warning() {
+    io.emit('oneMin');
 }
 
 function endGame() {

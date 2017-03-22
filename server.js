@@ -25,6 +25,7 @@ function requestHandler(req, res) {
 }
 
 var playerList = [];
+var started = false;
 
 // WEBSOCKET PORTION
 
@@ -37,7 +38,22 @@ io.sockets.on('connection',
 		console.log("We have a new client: " + socket.id);
 		///MY SOCKET EVENTS HERE
 
-
+        socket.on('name', function(data) {
+            if(!started){
+			playerList.push({
+                name: data,
+                id: socket.id,
+                team: "none",
+                role: "none",
+                poisoned: 0
+            });
+            }
+		});
+        socket.on('start', function() {
+            if(len(playerList) >= 8 && !started){
+			     startGame();
+            }
+		});
 
 		socket.on('disconnect', function() {
 			console.log("Client has disconnected " + socket.id);
@@ -118,10 +134,10 @@ function startGame() {
 		io.broadcast.to(x.id).emit('start', x);
 		io.broadcast.to(x.id).emit('players', playerList);
 	}
-
+    started = true;
 	setTimeout(endGame, 480000);
 }
 
 function endGame() {
-	io.emit('gameOver', )
+	io.emit('gameOver', playerList);
 }

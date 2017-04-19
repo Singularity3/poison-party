@@ -41,6 +41,10 @@
         socket.on('oneMin', function(data) {
             warning();
         });
+        
+        socket.on('info', function(data) {
+            getInfo(data);
+        });
 
      socket.on('gameOver', function(data){
       gameOver(data);

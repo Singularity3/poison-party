@@ -132,11 +132,23 @@ function gameOver(data) {
     else{
         text("You Are Alive", windowWidth/2, 180);
     }
-    text("There are "+blue+" People", windowWidth/2, 240);
+    if(blue==1){
+        text("There is 1 Person", windowWidth/2, 240);
+    }
+    else {
+        text("There are "+blue+" People", windowWidth/2, 240);
+    }
     text("Alive On Blue Team", windowWidth/2, 300);
-    text("There are "+red+" People", windowWidth/2, 400);
+    if(red==1){
+        text("There is 1 Person", windowWidth/2, 400);
+    }
+    else {
+        text("There are "+red+" People", windowWidth/2, 400);
+    }
     text("Alive On Red Team", windowWidth/2, 460);
 }
+
+document.cookie = "id=;expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
 function warning() {
     infoDisp = true;
@@ -249,4 +261,40 @@ function touchEnded() {
     }
 }
 
+}
+
+function setCookie(id) {
+    var d = new Date();
+    d.setTime(d.getTime() + (60*60*1000));
+    var expires = "expires="+ d.toUTCString();
+    document.cookie =  "id=" + id + ";" + expires + ";path=/";
+}
+
+function getCookie() {
+    var name = "id=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
+function checkCookie(sid) {
+    var id = getCookie();
+    if (id != "") {
+        socket.emit("rejoin", id);
+    } else {
+        while (id == "" || id == null) {
+            id = prompt("Please Enter Your (Real) Name", "name");
+        }
+        setCookie(sid);
+        socket.emit('name', id);
+    }
 }

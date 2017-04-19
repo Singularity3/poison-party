@@ -37,6 +37,8 @@ io.sockets.on('connection',
 	
 		console.log("We have a new client: " + socket.id);
 		///MY SOCKET EVENTS HERE
+    
+        socket.emit('setCookie', socket.id);
 
         socket.on('name', function(data) {
             if(!started&&data != null){

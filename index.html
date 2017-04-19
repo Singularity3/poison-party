@@ -26,9 +26,10 @@
      var socket = io.connect();
     
      socket.on('connect', function() {
-       console.log("Connected");
-         var name = prompt("Please Enter Your (Real) Name", "name");
-         socket.emit('name', name);
+        console.log("Connected");
+     });
+     socket.on('setCookie', function(data) {
+        checkCookie(data);
      });
 
      socket.on('start', function(data){

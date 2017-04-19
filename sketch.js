@@ -1,6 +1,5 @@
 var team, name, role, info, poison = 0, antidote = 0, dead = false, started = false, done = false, spySwap = false, nameDisp = 0, infoDisp = true, first = true;
-var lastX;
-var lastY;
+var click = false;
 var players = [];
 var nameGrid = [];
 
@@ -146,9 +145,11 @@ function gameOver(data) {
         text("There are "+red+" People", windowWidth/2, 400);
     }
     text("Alive On Red Team", windowWidth/2, 460);
+    
+document.cookie = "id=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
 }
 
-document.cookie = "id=;expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
 
 function warning() {
     infoDisp = true;
@@ -192,7 +193,7 @@ function targetPlayer(target){
     resizeCanvas(windowWidth, windowHeight);
 }
 
-function mouseClicked() {
+/*function mouseClicked() {
     if(!started){
         if(first){
             if(windowHeight-mouseY < 80) {
@@ -220,11 +221,14 @@ function mouseClicked() {
             }
         }
     }
-}
+}*/
 
 function touchStarted() {
-    lastX = mouseX;
-    lastY = mouseY;
+    click = true;
+}
+
+function touchMoved() {
+    click = false;
 }
 
 function touchEnded() {

@@ -37,19 +37,28 @@ io.sockets.on('connection',
 	
 		console.log("We have a new client: " + socket.id);
 		///MY SOCKET EVENTS HERE
-    
-        socket.emit('setCookie', socket.id);
+        if(!started){
+            socket.emit('setCookie', socket.id);
+        }
 
         socket.on('name', function(data) {
             if(!started&&data != null){
 			playerList.push({
                 name: data,
                 id: socket.id,
+                rtid: socket.id,
                 team: "none",
                 role: "none",
                 info: "none",
                 poisoned: 0
             });
+            }
+		});
+        socket.on('rejoin', function(data) {
+            for(var i=0; i<playerList.length; i++){
+                if(data == playerList[i].rtid){
+                    playerList[i].id = data;
+                }
             }
 		});
         socket.on('start', function() {
@@ -167,7 +176,7 @@ function startGame() {
 		io.in(playerList[i].id).emit('players', playerList);
 	}
     started = true;
-    setTimeout(generateMessages, 60000)
+    setTimeout(generateMessages, 30000)
     setTimeout(warning, 240000);
 	setTimeout(endGame, 300000);
 }
@@ -178,6 +187,7 @@ function warning() {
 
 function endGame() {
 	io.emit('gameOver', playerList);
+    var playerList = [];
 }
 
 function generateMessages() {

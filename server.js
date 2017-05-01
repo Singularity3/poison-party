@@ -25,7 +25,7 @@ function requestHandler(req, res) {
 }
 
 var playerList = [];
-var started = false;
+var roomsStarted = [];
 
 // WEBSOCKET PORTION
 
@@ -37,33 +37,49 @@ io.sockets.on('connection',
 	
 		console.log("We have a new client: " + socket.id);
 		///MY SOCKET EVENTS HERE
-        if(!started){
             socket.emit('setCookie', socket.id);
-        }
+        var room;
+    
 
         socket.on('name', function(data) {
-            if(!started&&data != null){
+            if(!getRoomStarted(data[1])){
+            if(data != null){
+                room = data[1];
 			playerList.push({
-                name: data,
-                id: socket.id,
-                rtid: socket.id,
-                team: "none",
-                role: "none",
-                info: "none",
-                poisoned: 0
+                "name": data[0],
+                "id": socket.id,
+                "rtid": socket.id,
+                "room": data[1],
+                "team": "none",
+                "role": "none",
+                "info": "none",
+                "poisoned": 0
             });
+                if(playersInRoom(room) == 1){
+                    socket.emit('first');
+                }
+            }
+            }
+            else{
+                socket.emit('roomStarted');
             }
 		});
         socket.on('rejoin', function(data) {
+            var rejSuc = false;
             for(var i=0; i<playerList.length; i++){
                 if(data == playerList[i].rtid){
                     playerList[i].id = data;
+                    rejSuc = true;
                 }
+            }
+            if(!rejSuc){
+                socket.emit('setCookie', socket.id);
             }
 		});
         socket.on('start', function() {
-            if(playerList.length >= 6 && !started){
-			     startGame();
+            console.log("Attempting to start game");
+            if(playersInRoom(room) >= 6 && !getRoomStarted(room)){
+			     startGame(room);
             }
 		});
     
@@ -76,8 +92,8 @@ io.sockets.on('connection',
             }
 		});
     
-        socket.on('antidote', function(data) {
-            console.log(data + " has been given antidote");
+        socket.on('order', function(data) {
+            console.log( + " has been ordered");
             for(var i=0; i<playerList.length; i++){
                 if(data == playerList[i].name){
                     playerList[i].poisoned = 0;
@@ -94,7 +110,7 @@ io.sockets.on('connection',
 // FACTION GEN
 
 function generateTeams() {
-	var doctors, spies, innos, vips = 0;
+	var doctors, spies, innos = 0;
 	var blue = [];
 	var red = [];
 	var tempList = [];
@@ -119,8 +135,7 @@ function generateTeams() {
 
 	doctors = 1+Math.floor(blue.length/8);
 	spies = 1+Math.floor(blue.length/8);
-	//vips = 1+Math.floor(blue.length/8);
-	innos = blue.length-doctors-spies-vips;
+	innos = blue.length-doctors-spies;
 	if(blue.length > red.length) {
 		innos++;
 		doctors--;
@@ -146,8 +161,7 @@ function generateTeams() {
 
 	doctors = 1+Math.floor(red.length/8);
 	spies = 1+Math.floor(red.length/8);
-	//vips = 1+Math.floor(red.length/8);
-	innos = red.length-doctors-spies-vips;
+	innos = red.length-doctors-spies;
 	red.sort(function(a, b){return 0.5 - Math.random()});
 	for(var i = 0; i<red.length; i++) {
 		if(innos > 0){
@@ -176,22 +190,31 @@ function startGame() {
 		io.in(playerList[i].id).emit('players', playerList);
 	}
     started = true;
-    setTimeout(generateMessages, 30000)
+    //setTimeout(generateMessages, 30000);
     setTimeout(warning, 240000);
 	setTimeout(endGame, 300000);
 }
 
 function warning() {
+    console.log("One Minute Remains");
     io.emit('oneMin');
 }
 
 function endGame() {
+    console.log("Game Over");
 	io.emit('gameOver', playerList);
-    var playerList = [];
+    setTimeout(cleanup, 10000);
 }
 
+function cleanup(){
+    playerList = [];
+    started = false;
+}
+
+var strArray = ["", "", "", ""];
+
 function generateMessages() {
-    
+    console.log("Sending Info");
     for(var i = 0; i<playerList.length; i++){
         var rpl = Math.floor(Math.random()*playerList.length);
         var rpl2 = Math.floor(Math.random()*playerList.length);
@@ -201,20 +224,38 @@ function generateMessages() {
         while(rpl2 == i || rpl2 == rpl){
             rpl2 = Math.floor(Math.random()*playerList.length);
         }
-        var str1 = "Try having a chat with " + playerList[rpl].name; + " and see if you can get some information.";
-        var str2 = "See if you can get a look at " + playerList[rpl].name; + "'s screen and find out what team they are.";
-        var str3 = "Hold on to your poison until you can talk to your team members and figure out who they poisoned.";
-        var str4 = "Keep a close eye on " + playerList[rpl.name] + "; see if you can find out if they're a spy."
+        strArray[0] = "Try having a chat with " + playerList[rpl].name; + " and see if you can get some information.";
+        strArray[1] = "See if you can get a look at " + playerList[rpl].name; + "'s screen and find out what team they are.";
+        strArray[2] = "Hold on to your poison until you can talk to your team members and figure out who they poisoned.";
+        strArray[3] = "Keep a close eye on " + playerList[rpl.name] + "; see if you can find out if they're a spy.";
         if(playerList.length > 12){
             if(playerList[rpl].team == playerList[rpl2].team){
-                str3 = "I think that " + playerList[rpl].name + " and " + playerList[rpl2].name + " are on the same team; see if you can find out what's going on there."
+                strArray[2] = "I think that " + playerList[rpl].name + " and " + playerList[rpl2].name + " are on the same team; see if you can find out what's going on there.";
             }
             else {
-                str3 = "I think that " + playerList[rpl].name + " and " + playerList[rpl2].name + " are on different teams; see if you can find out what's going on there."
+                strArray[2] = "I think that " + playerList[rpl].name + " and " + playerList[rpl2].name + " are on different teams; see if you can find out what's going on there.";
             }
         }
-        var strArray = [str1, str2, str3, str4];
-        playerList[i].info = strArray[Math.floor(Math.random*4)];
+        playerList[i].info = toString(strArray[Math.floor(Math.random*4)]);
         io.in(playerList[i].id).emit('info', playerList[i].info);
     }
+}
+
+function playersInRoom(room){
+    var count = 0;
+    for(var i = 0; i<playerList.length; i++){
+        if(playerList[i].room == room){
+            count++;
+        }
+    }
+    return count;
+}
+
+function getRoomStarted(room){
+    for(var i = 0; i<roomsStarted.length; i++){
+        if(roomsStarted[i] == room){
+            return true;
+        }
+    }
+    return false;
 }

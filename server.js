@@ -39,12 +39,14 @@ io.sockets.on('connection',
 		///MY SOCKET EVENTS HERE
             socket.emit('setCookie', socket.id);
         var room;
+        var num;
     
 
         socket.on('name', function(data) {
             if(!getRoomStarted(data[1])){
             if(data != null){
                 room = data[1];
+                socket.join(room);
 			playerList.push({
                 "name": data[0],
                 "id": socket.id,
@@ -53,9 +55,10 @@ io.sockets.on('connection',
                 "team": "none",
                 "role": "none",
                 "info": "none",
-                "poisoned": 0
+                "order": "none"
             });
-                if(playersInRoom(room) == 1){
+                num = playerList.length-1;
+                if(playersInRoom(room).length == 1){
                     socket.emit('first');
                 }
             }
@@ -78,27 +81,63 @@ io.sockets.on('connection',
 		});
         socket.on('start', function() {
             console.log("Attempting to start game");
-            if(playersInRoom(room) >= 6 && !getRoomStarted(room)){
+            if(playersInRoom(room).length >= 6 && !getRoomStarted(room)){
 			     startGame(room);
             }
 		});
     
         socket.on('poison', function(data) {
             console.log(data + " has been poisoned");
-            for(var i=0; i<playerList.length; i++){
-                if(data == playerList[i].name){
-                    playerList[i].poisoned = 1;
+            for(var i=0; i<roomsStarted.length; i++){
+                if(room = roomsStarted[i].rn){
+                    if(data == "Steak"){
+                        roomsStarted[i].steakP = true;
+                        return false;
+                    }
+                    if(data == "Fish"){
+                        roomsStarted[i].fishP = true;
+                        return false;
+                    }
+                    if(data == "Lasagna"){
+                        roomsStarted[i].lasP = true;
+                        return false;
+                    }
                 }
             }
+            
 		});
     
         socket.on('order', function(data) {
-            console.log( + " has been ordered");
-            for(var i=0; i<playerList.length; i++){
-                if(data == playerList[i].name){
-                    playerList[i].poisoned = 0;
+            console.log(data + " has been ordered");
+            for(var i=0; i<roomsStarted.length; i++){
+                if(room = roomsStarted[i].rn){
+                    if(data == "Steak"){
+                        if(roomsStarted[i].steakNum>0){
+                            roomsStarted[i].steakNum--;
+                            playerList[num].order = "Steak";
+                            io.in(room).emit('orderPlaced', data;)
+                            return false;
+                        }
+                    }
+                    if(data == "Fish"){
+                        if(roomsStarted[i].fishNum>0){
+                            roomsStarted[i].fishNum--;
+                            playerList[num].order = "Fish";
+                            io.in(room).emit('orderPlaced', data;)
+                            return false;
+                        }
+                    }
+                    if(data == "Lasagna"){
+                        if(roomsStarted[i].lasNum>0){
+                            roomsStarted[i].lasNum--;
+                            playerList[num].order = "Lasagna";
+                            io.in(room).emit('orderPlaced', data;)
+                            return false;
+                        }
+                    }
                 }
             }
+            socket.emit('outOfStock');
 		});
 
 		socket.on('disconnect', function() {
@@ -109,20 +148,17 @@ io.sockets.on('connection',
 
 // FACTION GEN
 
-function generateTeams() {
-	var doctors, spies, innos = 0;
+function generateTeams(room) {
+	var poisoners, spies, innos = 0;
 	var blue = [];
 	var red = [];
-	var tempList = [];
-    var x = playerList.length;
-    for(var i=0; i<x; i++) {
-        tempList.push(i);
-    }
+    var lone = -1;
+	var tempList = playersInRoom(room);
+    var x = tempList.length;
     console.log(tempList);
 	tempList.sort(function(a, b){return 0.5 - Math.random()});
 	for(var i=0; i<x/2; i++) {
 		var player = tempList.pop();
-        console.log(player);
 		blue.push(player);
 		playerList[player].team = "blue";
 
@@ -132,84 +168,95 @@ function generateTeams() {
 		red.push(player);
 		playerList[player].team = "red";
 	}
-
-	doctors = 1+Math.floor(blue.length/8);
-	spies = 1+Math.floor(blue.length/8);
-	innos = blue.length-doctors-spies;
-	if(blue.length > red.length) {
-		innos++;
-		doctors--;
-	}
-	blue.sort(function(a, b){return 0.5 - Math.random()});
+    
+    blue.sort(function(a, b){return 0.5 - Math.random()});
+    if(blue.length>red.length){
+        lone = blue.pop();
+    }
+	poisoners = 1;
+	spies = 1+Math.floor(blue.length/6);
+	innos = blue.length-poisoners-spies;
 	for(var i = 0; i<blue.length; i++) {
 		if(innos > 0){
 			playerList[blue[i]].role = "inno";
-            playerList[blue[i]].info = "You are a blue team member. Destroy the red team by any means necessary. Tap this message to make it vanish."
+            playerList[blue[i]].info = "You are a blue team member. Try and find out what's been poisoned, and stay away from it. Tap this message to make it vanish."
 			innos--;
 		}
 		else if(spies > 0) {
 			playerList[blue[i]].role = "spy";
-            playerList[blue[i]].info = "You are a blue spy. Destroy the red team by any means necessary. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
+            playerList[blue[i]].info = "You are a blue spy. Go undercover, and figure out the other team's plans. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
 			spies--;
 		}
-		else if(doctors > 0) {
-			playerList[blue[i]].role = "doctor";
-            playerList[blue[i]].info = "You are a blue doctor. Destroy the red team by any means necessary. Try and save one of your teammates with your antidote. Tap this message to make it vanish."
-			doctors--;
+		else if(poisoners > 0) {
+			playerList[blue[i]].role = "poisoner";
+            playerList[blue[i]].info = "You are the blue poisoner. Destroy the red team by any means necessary. Tap this message to make it vanish."
+			poisoners--;
 		}
 	}
 
-	doctors = 1+Math.floor(red.length/8);
-	spies = 1+Math.floor(red.length/8);
-	innos = red.length-doctors-spies;
+	poisoners = 1;
+	spies = 1+Math.floor(red.length/6);
+	innos = red.length-poisoners-spies;
 	red.sort(function(a, b){return 0.5 - Math.random()});
 	for(var i = 0; i<red.length; i++) {
 		if(innos > 0){
 			playerList[red[i]].role = "inno";
-            playerList[red[i]].info = "You are a red team member. Destroy the blue team by any means necessary. Tap this message to make it vanish."
+            playerList[red[i]].info = "You are a red team member. Try and find out what's been poisoned, and stay away from it. Tap this message to make it vanish."
 			innos--;
 		}
 		else if(spies > 0) {
 			playerList[red[i]].role = "spy";
-            playerList[red[i]].info = "You are a red spy. Destroy the blue team by any means necessary. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
+            playerList[red[i]].info = "You are a red spy. Go undercover, and figure out the other team's plans. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
 			spies--;
 		}
-		else if(doctors > 0) {
-			playerList[red[i]].role = "doctor";
-            playerList[red[i]].info = "You are a red doctor. Destroy the blue team by any means necessary. Try and save one of your teammates with your antidote. Tap this message to make it vanish."
-			doctors--;
+		else if(poisoners > 0) {
+			playerList[red[i]].role = "poisoner";
+            playerList[red[i]].info = "You are the red poisoner. Destroy the blue team by any means necessary. Tap this message to make it vanish."
+			poisoners--;
 		}
 	}
+    
+    if(lone>=0){
+        {
+            playerList[player].team = "grey";
+			playerList[lone].role = "inno";
+            playerList[lone].info = "You are an innocent guest at this party. You don't belong to any team. Try not to die."
+			poisoners--;
+		}
+    }
+    var dishNum = Math.ceil(x/3);
+    roomsStarted.push({'rn': room, 'steakNum': dishNum, 'fishNum': dishNum, 'lasNum': dishNum, 'steakP': false, 'fishP': false, 'lasP': false});
 }
 
-function startGame() {
-	generateTeams();
+function startGame(room) {
+	generateTeams(room);
 
-	for(var i = 0; i<playerList.length; i++){
-		io.in(playerList[i].id).emit('start', playerList[i]);
-		io.in(playerList[i].id).emit('players', playerList);
-	}
-    started = true;
+		io.in(room).emit('start', playerList);
+    
     //setTimeout(generateMessages, 30000);
-    setTimeout(warning, 240000);
-	setTimeout(endGame, 300000);
+    setTimeout(warning(room), 240000);
+	setTimeout(endGame(room), 300000);
 }
 
-function warning() {
+function warning(room) {
     console.log("One Minute Remains");
-    io.emit('oneMin');
+    io.in(room).emit('oneMin');
 }
 
-function endGame() {
+function endGame(room) {
     console.log("Game Over");
-	io.emit('gameOver', playerList);
-    setTimeout(cleanup, 10000);
+    for(var i=0; i<roomsStarted.length; i++){
+        if(roomsStarted[i].rn == room){
+            io.in(room).emit('gameOver', [playerList, roomsStarted[i]]);
+            return false;
+        }
+    }
 }
 
-function cleanup(){
+/*function cleanup(){
     playerList = [];
     started = false;
-}
+}*/
 
 var strArray = ["", "", "", ""];
 
@@ -226,7 +273,7 @@ function generateMessages() {
         }
         strArray[0] = "Try having a chat with " + playerList[rpl].name; + " and see if you can get some information.";
         strArray[1] = "See if you can get a look at " + playerList[rpl].name; + "'s screen and find out what team they are.";
-        strArray[2] = "Hold on to your poison until you can talk to your team members and figure out who they poisoned.";
+        strArray[2] = "Try and find someone with poison, and keep tabs on them.";
         strArray[3] = "Keep a close eye on " + playerList[rpl.name] + "; see if you can find out if they're a spy.";
         if(playerList.length > 12){
             if(playerList[rpl].team == playerList[rpl2].team){
@@ -242,18 +289,18 @@ function generateMessages() {
 }
 
 function playersInRoom(room){
-    var count = 0;
+    var players = [];
     for(var i = 0; i<playerList.length; i++){
         if(playerList[i].room == room){
-            count++;
+            players.push(i);
         }
     }
-    return count;
+    return players;
 }
 
 function getRoomStarted(room){
     for(var i = 0; i<roomsStarted.length; i++){
-        if(roomsStarted[i] == room){
+        if(roomsStarted[i].rn == room){
             return true;
         }
     }

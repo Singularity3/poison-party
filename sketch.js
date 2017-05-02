@@ -1,4 +1,4 @@
-var team, name, role, info, poison = 0, antidote = 0, dead = false, started = false, done = false, spySwap = false, nameDisp = 0, infoDisp = true, first = false;
+var team, name, serverid, role, info, sNum, fNum, lNum, poison = 0, order = "none", dead = false, started = false, done = false, spySwap = false, nameDisp = 0, infoDisp = true, first = false, var room;
 var players = [];
 var nameGrid = [];
 
@@ -17,7 +17,7 @@ function draw() {
 		textSize(24);
 		text("Welcome To Poison Party", windowWidth/2, 60);
 		textSize(14);
-		text("You will be given a vial of poison, a team, and a role. Your job is to keep your team alive and to poison the opposing team. However, you don't know who's on who's team; you'll have to figure that out through friendly conversation (or looking over their shoulder). Make sure that you're not poisoning someone that somebody else has already poisoned; that'd be an awful waste. If you're a Doctor, you can give someone else antidote. They'll be saved if they were previously poisoned, but otherwise, it won't do anything. If you're a Spy, you can change the color you appear as by tapping your name. Use this to blend in to a team and avoid being found out, but don't be killed by your own team! The game lasts for 5 minutes, more or less. We'll warn you when time's almost up; make sure to do what you have to before the end.", 20, 80, windowWidth-40, windowHeight-80);
+		text("You will be given a team and a role. Your job is to keep your team alive and to bring about the downfall the opposing team (and get a tasty meal out of the deal). However, you don't know who's on who's team; you'll have to figure that out through friendly conversation (or looking over shoulders). One person on each team will have a vial of poison to slip into one of the entrees. Try not to order anything flavored with arsenic. There are only so many of each item on the menu, so order as soon as you're confident in your decision! If you're a Spy, you can change the color you appear as by tapping your name. Use this to blend in to a team and avoid being found out, but don't be killed by your own team! The game lasts for 5 minutes, more or less. We'll warn you when time's almost up; make sure to order something before the end, or you'll starve.", 20, 80, windowWidth-40, windowHeight-80);
         if(first){
             rect(0, windowHeight-80, windowWidth, 80);
             fill(255);
@@ -32,6 +32,9 @@ function draw() {
         }
         if((team == "blue" && !spySwap) || (team == "red" && spySwap)){
             fill(200, 200, 255);
+        }
+        if(team=="grey"){
+            fill(200, 200, 200);
         }
         rect(0, 0, windowWidth, 100);
         fill(0);
@@ -64,13 +67,26 @@ function draw() {
 }
 
 function startGame(data) {
-    name = data.name;
-	team = data.team;
-	role = data.role;
-	info = data.info;
-    if(role = "Poisoner"){
+    var pCount = 0;
+    for(var i=0; i<data.length; i++){
+        if(serverid == data[i].id){
+            name = data[i].name;
+            team = data[i].team;
+            role = data[i].role;
+            info = data[i].info;
+    if(role == "Poisoner"){
         poison = 1;
     }
+        }
+    if(room == data[i].room){
+        pCount++;
+    }
+    }
+    
+    sNum = Math.ceil(pCount/3);
+    fNum = Math.ceil(pCount/3);
+    lNum = Math.ceil(pCount/3);
+    
 	started = true;
 }
 
@@ -90,21 +106,32 @@ function gameOver(data) {
 	done = true;
     background(0);
     fill(255);
+    var sP = data[1].steakP;
+    var fP = data[1].fishP;
+    var lP = data[1].lasP;
     var winner;
-    var dead;
+    var dead = false;
     var red = 0;
     var blue = 0;
+    var lone = false;
     
-    for(var i = 0; i<data.length; i++) {
-        if(name == data[i].name){
-            dead = data[i].poisoned;
+    if(order=="none" || (order=="Steak"&&sP) || (order=="Fish"&&fP) || (order=="Lasagna"&&lP)){
+            dead = true;
         }
-        if("red" == data[i].team && data[i].poisoned == 0){
+    for(var i = 0; i<data[0].length; i++) {
+        if(data[0][i].room = room){
+            if((data[0][i].order == "Steak"&&!sP) || (data[0][i].order == "Fish"&&!fP) || (data[0][i].order == "Lasagna"&&!lP)){
+        if("red" == data[0][i].team){
             red++;
         }
-        if("blue" == data[i].team && data[i].poisoned == 0){
+        if("blue" == data[0][i].team){
             blue++;
         }
+        if("grey" == data[0][i].team){
+            lone = true;
+        }
+        }
+    }
     }
     if(red>blue){
         winner = "Red Team Wins";
@@ -187,13 +214,13 @@ function popNames() {
             
 function targetFood(target){
     if(target != "Nothing Yet"){
-    if(nameDisp == 1 ){
+    if(nameDisp == 1){
         socket.emit('poison', target);
         poison--;
     }
     if(nameDisp == 2){
         socket.emit('order', target);
-        antidote--;
+        order = target;
     }
     }
     nameDisp = 0;
@@ -293,7 +320,7 @@ function getCookie() {
 
 function checkCookie(sid) {
     var id = getCookie();
-    var room;
+    
     if (id != "") {
         socket.emit("rejoin", id);
     } else {
@@ -302,10 +329,29 @@ function checkCookie(sid) {
         }
             room = prompt("Please Enter A Room Code", "room");
         setCookie(sid);
+        serverid = sid;
         socket.emit('name', [id, room]);
     }
 }
 
 function setFirst(){
     first = true;
+}
+
+function outOfStock(){
+    order = "none";
+    infoDisp = true;
+    info = "Sorry, we're out of that item";
+}
+
+function orderPlaced(item){
+    if(item=="Steak"){
+        sNum--;
+    }
+    if(item=="Fish"){
+        fNum--;
+    }
+    if(item=="Lasagna"){
+        lNum--;
+    }
 }

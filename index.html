@@ -55,6 +55,15 @@
      socket.on('gameOver', function(data){
       gameOver(data);
      });
+        
+        socket.on('outOfStock', function(){
+            outOfStock();
+        });
+        
+        socket.on('orderPlaced', function(data){
+      orderPlaced(data);
+     });
+        
 
 
   </script>

@@ -1,4 +1,4 @@
-var team, name, serverid, role, info, sNum, fNum, lNum, poison = 0, order = "none", dead = false, started = false, done = false, spySwap = false, nameDisp = 0, infoDisp = true, first = false, var room;
+var team, name, serverid, role, info, sNum, fNum, lNum, poison = 0, order = "none", dead = false, started = false, done = false, spySwap = false, nameDisp = 0, infoDisp = true, first = false, room;
 var players = [];
 var nameGrid = [];
 
@@ -43,6 +43,7 @@ function draw() {
         fill(0);
         ellipse(windowWidth/4, 400, 100, 100);
         fill(200);
+        text(poison, windowWidth/4, 400);
         ellipse(windowWidth*3/4, 400, 100, 100);
         textSize(16);
         text("Poison", windowWidth/4, 420);
@@ -59,9 +60,6 @@ function draw() {
             for(var i = 0; i<nameGrid.length; i++){
                 nameGrid[i].display();
             }
-            textSize(14);
-            fill(0);
-            text("Scroll Here", (windowWidth*2/3)+5, 80, (windowWidth/3)-5, windowHeight-80)
         }
     }
 }
@@ -74,7 +72,7 @@ function startGame(data) {
             team = data[i].team;
             role = data[i].role;
             info = data[i].info;
-    if(role == "Poisoner"){
+    if(role == "poisoner"){
         poison = 1;
     }
         }
@@ -113,13 +111,17 @@ function gameOver(data) {
     var dead = false;
     var red = 0;
     var blue = 0;
+    var count = 0;
     var lone = false;
     
     if(order=="none" || (order=="Steak"&&sP) || (order=="Fish"&&fP) || (order=="Lasagna"&&lP)){
             dead = true;
         }
     for(var i = 0; i<data[0].length; i++) {
-        if(data[0][i].room = room){
+        
+        if(data[0][i].room == room){
+            count++;
+            console.log(data[0][i].order);
             if((data[0][i].order == "Steak"&&!sP) || (data[0][i].order == "Fish"&&!fP) || (data[0][i].order == "Lasagna"&&!lP)){
         if("red" == data[0][i].team){
             red++;
@@ -142,10 +144,48 @@ function gameOver(data) {
     else{
         winner = "Tie Game";
     }
-    
     textSize(30);
-    text("Game Over", windowWidth/2, 60);
-    text(winner, windowWidth/2, 120);
+    var poisonText1, poisonText2;
+    if(sP){
+        if(fP){
+            poisonText1 = "The Steak And Fish";
+            poisonText2 = "Were Poisoned";
+        }
+        else if(lP){
+            poisonText1 = "The Steak And Lasagna";
+            poisonText2 = "Were Poisoned";
+        }
+        else{
+            poisonText1 = "The Steak Was";
+            poisonText2 = "Poisoned Twice";
+        }
+    }
+    else if(fP && !sP){
+        if(lP){
+            poisonText1 = "The Fish And Lasagna";
+            poisonText2 = "Were Poisoned";
+        }
+        else{
+            poisonText1 = "The Fish Was";
+            poisonText2 = "Poisoned Twice";
+        }
+        
+    }
+    else if(lP && !sP && !fP){
+        poisonText1 = "The Lasagna Was";
+        poisonText2 = "Poisoned Twice";
+    }
+    else if(!sP && !fP && !lP){
+        poisonText1 = "Nothing Was Poisoned";
+        poisonText2 = "Come On, Guys";
+    }
+    
+    if(windowHeight < 600){
+        resizeCanvas(windowWidth, 600);
+    }
+    
+    text(poisonText1, windowWidth/2, 60);
+    text(poisonText2, windowWidth/2, 120);
     if(dead == 1){
         text("You Are Dead", windowWidth/2, 180);
     }
@@ -160,12 +200,21 @@ function gameOver(data) {
     }
     text("Alive On Blue Team", windowWidth/2, 300);
     if(red==1){
-        text("There is 1 Person", windowWidth/2, 400);
+        text("There is 1 Person", windowWidth/2, 360);
     }
     else {
-        text("There are "+red+" People", windowWidth/2, 400);
+        text("There are "+red+" People", windowWidth/2, 360);
     }
-    text("Alive On Red Team", windowWidth/2, 460);
+    text("Alive On Red Team", windowWidth/2, 420);
+    if(count%2 == 1){
+        if(lone){
+            text("The Innocent Lived", windowWidth/2, 480);
+        }
+        else{
+            text("The Innocent Died", windowWidth/2, 480);
+        }
+    }
+    text(winner, windowWidth/2, 570);
     
 document.cookie = "id=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
 }
@@ -180,36 +229,36 @@ function warning() {
 function popNames() {
     
             nameGrid.push({num: 0, name: 'Nothing Yet', display: function(){
-                fill((this.num*20)%160);
-                rect(0, this.num*40, windowWidth*2/3, 40);
-                fill(255);
-                textSize(25);
-                text(this.name, windowWidth/3, 35+this.num*40);
+                fill(195);
+                rect(0, this.num*100, windowWidth, 100);
+                fill(50);
+                textSize(50);
+                text(this.name, windowWidth/2, 75+this.num*100);
             }});
 
-            nameGrid.push({num: 0, name: 'Steak', display: function(){
-                fill((this.num*20)%160);
-                rect(0, this.num*40, windowWidth*2/3, 40);
-                fill(255);
-                textSize(25);
-                text(this.name, windowWidth/3, 35+this.num*40);
+            nameGrid.push({num: 1, name: 'Steak', display: function(){
+                fill(215);
+                rect(0, this.num*100, windowWidth, 100);
+                fill(50);
+                textSize(50);
+                text(this.name + " - " + sNum, windowWidth/2, 75+this.num*100);
             }});
-            nameGrid.push({num: 1, name: 'Fish', display: function(){
-                fill((this.num*20)%160);
-                rect(0, this.num*40, windowWidth*2/3, 40);
-                fill(255);
-                textSize(25);
-                text(this.name, windowWidth/3, 35+this.num*40);
+            nameGrid.push({num: 2, name: 'Fish', display: function(){
+                fill(235);
+                rect(0, this.num*100, windowWidth, 100);
+                fill(50);
+                textSize(50);
+                text(this.name + " - " + fNum, windowWidth/2, 75+this.num*100);
             }});
     
-            nameGrid.push({num: 0, name: 'Lasagna', display: function(){
-                fill((this.num*20)%160);
-                rect(0, this.num*40, windowWidth*2/3, 40);
+            nameGrid.push({num: 3, name: 'Lasagna', display: function(){
                 fill(255);
-                textSize(25);
-                text(this.name, windowWidth/3, 35+this.num*40);
+                rect(0, this.num*100, windowWidth, 100);
+                fill(50);
+                textSize(50);
+                text(this.name + " - " + lNum, windowWidth/2, 75+this.num*100);
             }});
-    resizeCanvas(windowWidth, nameGrid.length*50);
+    resizeCanvas(windowWidth, nameGrid.length*100);
 }
             
 function targetFood(target){
@@ -270,8 +319,8 @@ function mousePressed() {
     }
     else{
         if(nameDisp!=0){
-            if(mouseY/50 <= nameGrid.length && mouseX < windowWidth*2/3){
-                targetFood(nameGrid[floor(mouseY/50)].name);
+            if(mouseY/100 <= nameGrid.length){
+                targetFood(nameGrid[floor(mouseY/100)].name);
                 return false;
             }
         }
@@ -280,7 +329,7 @@ function mousePressed() {
                 nameDisp = 1;
                 popNames();
             }
-            if(dist(mouseX, mouseY, windowWidth*3/4, 400) <= 50 && antidote > 0){
+            if(dist(mouseX, mouseY, windowWidth*3/4, 400) <= 50 && order == "none"){
                 nameDisp = 2;
                 popNames();
             }
@@ -327,9 +376,12 @@ function checkCookie(sid) {
         while (id == "" || id == null) {
             id = prompt("Please Enter Your (Real) Name", "name");
         }
+        while (room == "" || room == null) {
             room = prompt("Please Enter A Room Code", "room");
+        }
         setCookie(sid);
         serverid = sid;
+        room = room.toUpperCase();
         socket.emit('name', [id, room]);
     }
 }

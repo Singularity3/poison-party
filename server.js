@@ -39,25 +39,23 @@ io.sockets.on('connection',
 		///MY SOCKET EVENTS HERE
             socket.emit('setCookie', socket.id);
         var room;
-        var num;
     
 
         socket.on('name', function(data) {
-            if(!getRoomStarted(data[1])){
+            if(!getRoomStarted(data[1].toUpperCase())){
             if(data != null){
-                room = data[1];
+                room = data[1].toUpperCase();
                 socket.join(room);
 			playerList.push({
                 "name": data[0],
                 "id": socket.id,
                 "rtid": socket.id,
-                "room": data[1],
+                "room": room,
                 "team": "none",
                 "role": "none",
                 "info": "none",
                 "order": "none"
             });
-                num = playerList.length-1;
                 if(playersInRoom(room).length == 1){
                     socket.emit('first');
                 }
@@ -81,7 +79,7 @@ io.sockets.on('connection',
 		});
         socket.on('start', function() {
             console.log("Attempting to start game");
-            if(playersInRoom(room).length >= 6 && !getRoomStarted(room)){
+            if(playersInRoom(room).length >= 2 && !getRoomStarted(room)){
 			     startGame(room);
             }
 		});
@@ -108,30 +106,32 @@ io.sockets.on('connection',
 		});
     
         socket.on('order', function(data) {
-            console.log(data + " has been ordered");
             for(var i=0; i<roomsStarted.length; i++){
-                if(room = roomsStarted[i].rn){
+                if(room == roomsStarted[i].rn){
                     if(data == "Steak"){
                         if(roomsStarted[i].steakNum>0){
+                            console.log("Steak has been ordered");
                             roomsStarted[i].steakNum--;
-                            playerList[num].order = "Steak";
-                            io.in(room).emit('orderPlaced', data;)
+                            playerList[getPlayer(socket.id)].order = "Steak";
+                            io.in(room).emit('orderPlaced', data);
                             return false;
                         }
                     }
                     if(data == "Fish"){
                         if(roomsStarted[i].fishNum>0){
+                            console.log("Fish has been ordered");
                             roomsStarted[i].fishNum--;
-                            playerList[num].order = "Fish";
-                            io.in(room).emit('orderPlaced', data;)
+                            playerList[getPlayer(socket.id)].order = "Fish";
+                            io.in(room).emit('orderPlaced', data);
                             return false;
                         }
                     }
                     if(data == "Lasagna"){
                         if(roomsStarted[i].lasNum>0){
+                            console.log("Lasagna has been ordered");
                             roomsStarted[i].lasNum--;
-                            playerList[num].order = "Lasagna";
-                            io.in(room).emit('orderPlaced', data;)
+                            playerList[getPlayer(socket.id)].order = "Lasagna";
+                            io.in(room).emit('orderPlaced', data);
                             return false;
                         }
                     }
@@ -182,15 +182,15 @@ function generateTeams(room) {
             playerList[blue[i]].info = "You are a blue team member. Try and find out what's been poisoned, and stay away from it. Tap this message to make it vanish."
 			innos--;
 		}
+        else if(poisoners > 0) {
+			playerList[blue[i]].role = "poisoner";
+            playerList[blue[i]].info = "You are the blue poisoner. Destroy the red team by any means necessary. Tap this message to make it vanish."
+			poisoners--;
+		}
 		else if(spies > 0) {
 			playerList[blue[i]].role = "spy";
             playerList[blue[i]].info = "You are a blue spy. Go undercover, and figure out the other team's plans. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
 			spies--;
-		}
-		else if(poisoners > 0) {
-			playerList[blue[i]].role = "poisoner";
-            playerList[blue[i]].info = "You are the blue poisoner. Destroy the red team by any means necessary. Tap this message to make it vanish."
-			poisoners--;
 		}
 	}
 
@@ -204,21 +204,21 @@ function generateTeams(room) {
             playerList[red[i]].info = "You are a red team member. Try and find out what's been poisoned, and stay away from it. Tap this message to make it vanish."
 			innos--;
 		}
+        else if(poisoners > 0) {
+			playerList[red[i]].role = "poisoner";
+            playerList[red[i]].info = "You are the red poisoner. Destroy the blue team by any means necessary. Tap this message to make it vanish."
+			poisoners--;
+		}
 		else if(spies > 0) {
 			playerList[red[i]].role = "spy";
             playerList[red[i]].info = "You are a red spy. Go undercover, and figure out the other team's plans. Tap your name to change what color you appear as, to fool your enemies. Tap this message to make it vanish."
 			spies--;
 		}
-		else if(poisoners > 0) {
-			playerList[red[i]].role = "poisoner";
-            playerList[red[i]].info = "You are the red poisoner. Destroy the blue team by any means necessary. Tap this message to make it vanish."
-			poisoners--;
-		}
 	}
     
     if(lone>=0){
         {
-            playerList[player].team = "grey";
+            playerList[lone].team = "grey";
 			playerList[lone].role = "inno";
             playerList[lone].info = "You are an innocent guest at this party. You don't belong to any team. Try not to die."
 			poisoners--;
@@ -233,9 +233,9 @@ function startGame(room) {
 
 		io.in(room).emit('start', playerList);
     
-    //setTimeout(generateMessages, 30000);
-    setTimeout(warning(room), 240000);
-	setTimeout(endGame(room), 300000);
+    setTimeout(generateMessages, 45000, room);
+    setTimeout(warning, 180000, room);
+	setTimeout(endGame, 240000, room);
 }
 
 function warning(room) {
@@ -258,23 +258,25 @@ function endGame(room) {
     started = false;
 }*/
 
-var strArray = ["", "", "", ""];
 
-function generateMessages() {
+
+function generateMessages(room) {
     console.log("Sending Info");
-    for(var i = 0; i<playerList.length; i++){
-        var rpl = Math.floor(Math.random()*playerList.length);
-        var rpl2 = Math.floor(Math.random()*playerList.length);
-        while(rpl == i){
-            rpl = Math.floor(Math.random()*playerList.length);
+    var players = playersInRoom(room);
+    var strArray = [4];
+    for(var i = 0; i<players.length; i++){
+        var rpl = players[Math.floor(Math.random()*players.length)];
+        var rpl2 = players[Math.floor(Math.random()*players.length)];
+        while(rpl == players[i]){
+            rpl = players[Math.floor(Math.random()*players.length)];
         }
-        while(rpl2 == i || rpl2 == rpl){
-            rpl2 = Math.floor(Math.random()*playerList.length);
+        while(rpl2 == players[i] || rpl2 == rpl){
+            rpl2 = players[Math.floor(Math.random()*players.length)];
         }
-        strArray[0] = "Try having a chat with " + playerList[rpl].name; + " and see if you can get some information.";
-        strArray[1] = "See if you can get a look at " + playerList[rpl].name; + "'s screen and find out what team they are.";
+        strArray[0] = "Try having a chat with " + playerList[rpl].name + " and see if you can get some information.";
+        strArray[1] = "See if you can get a look at " + playerList[rpl].name + "'s screen and find out what team they are.";
         strArray[2] = "Try and find someone with poison, and keep tabs on them.";
-        strArray[3] = "Keep a close eye on " + playerList[rpl.name] + "; see if you can find out if they're a spy.";
+        strArray[3] = "Keep a close eye on " + playerList[rpl].name + "; see if you can find out if they're a spy.";
         if(playerList.length > 12){
             if(playerList[rpl].team == playerList[rpl2].team){
                 strArray[2] = "I think that " + playerList[rpl].name + " and " + playerList[rpl2].name + " are on the same team; see if you can find out what's going on there.";
@@ -283,8 +285,9 @@ function generateMessages() {
                 strArray[2] = "I think that " + playerList[rpl].name + " and " + playerList[rpl2].name + " are on different teams; see if you can find out what's going on there.";
             }
         }
-        playerList[i].info = toString(strArray[Math.floor(Math.random*4)]);
-        io.in(playerList[i].id).emit('info', playerList[i].info);
+        var finStr = strArray[Math.floor(Math.random()*4)];
+        playerList[players[i]].info = finStr;
+        io.in(playerList[players[i]].id).emit('info', playerList[players[i]].info);
     }
 }
 
@@ -305,4 +308,13 @@ function getRoomStarted(room){
         }
     }
     return false;
+}
+
+function getPlayer(id){
+    for(var i = 0; i<playerList.length; i++){
+        if(playerList[i].id == id) {
+            return i;
+        }
+    }
+    return -1;
 }
